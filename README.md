@@ -1,1 +1,2 @@
 # Shell
+This folder contains a makefile and codes of my terminal, starcsh. The various other codes are, ls, pwd, echo, pinfo. THe code for cd is included in starcsh.c as a function. The Makefile makes different executables for different commands except cd. The different executables then are executed as a process in starcsh, upon calling. The executables are named according to their commandnames, and can be executed via starcsh, or bash. 
