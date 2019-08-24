@@ -24,7 +24,6 @@ int main(int argc, char **argv){
     static const char * lookup[] = {"Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"};
     char homeDirectory[1000];
     strcpy(homeDirectory, argv[argc-1]);
-    printf("%s\n", homeDirectory);
     char currentDirectory[1000];
     getcwd(currentDirectory, 1000);
     if(argc==2){ 
@@ -464,8 +463,6 @@ int main(int argc, char **argv){
         else{
             char revDirectory[1000];
             reverseDirectoryChanger(homeDirectory, argv[1], revDirectory);
-            printf("%s\n", revDirectory);
-            printf("%s %s\n", argv[1], argv[2]);
             DIR *directory = opendir(revDirectory); 
             if (directory == NULL){ 
                 printf("Could not open current directory\n" ); 

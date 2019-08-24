@@ -310,9 +310,6 @@ int executeCommand(char *command, char **args, char *directory, int procedure){
             }
             else{
                 char *arg[]={command,args[1], args[2], directory, NULL};
-                for(int i=0;i<2;i++){
-                    printf("%s\n", arg[i]);
-                }
                 if(execv(path, arg)<0){
                     printf("Error:%s\n", strerror(errno));
                     exit(-1);
@@ -446,7 +443,6 @@ int reverseDirectoryChanger(char * homeDirectory, char *givenDirectory, char *re
 }
 int cd(char * path, char *homeDirectory, char * newDirectory){
     reverseDirectoryChanger(homeDirectory, path, newDirectory);
-    printf("%s\n", newDirectory);
     if(chdir(newDirectory)<0){
         perror("chdir");
     }
