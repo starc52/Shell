@@ -33,6 +33,9 @@ int main(){
     while(1){
         
         directoryChanger(homeDirectory, currentDirectory, directory);
+        if(strcmp(directory, "//")==0){
+            strcpy(directory, "/");
+        }
         printf("<%s@%s:%s>", user, computer, directory);
         for(int i=0;i<1000;i++){
             command[i]='\0';
