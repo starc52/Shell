@@ -377,7 +377,7 @@ int executeSystemCommand(char * command, char **args, int procedure){
                         exit(-1);
                     }
                     if (WIFEXITED(wstatus)) {
-                        printf("%s exited, with pid %d\n",command, sndGen);
+                        printf("%s exited normally, with pid %d\n",command, sndGen);
                     } 
                } while (!WIFEXITED(wstatus) && !WIFSIGNALED(wstatus));
                exit(0);
