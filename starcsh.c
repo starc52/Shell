@@ -7,28 +7,29 @@
 #include<readline/readline.h>
 #include<readline/history.h>
 #include<errno.h>
-int cd(char * path, char * homeDirectory, char *newDirectory);
-int directoryChanger(char *actDirectory, char* path, char * correctedPath);
-int commandParse(char *command, char **revisedCommand);
-int executeCommand(char *command, char **args, char *directory, int procedure);
-int executeSystemCommand(char * command, char **args, int procedure);
-int reverseDirectoryChanger(char * homeDirectory, char *givenDirectory, char *revisedDirectory);
+int cd(char * path, char * homeDirectory, char *newDirectory);//given a path(path) entered by user, the actual home directory(homeDirectory), and a buffer(newDirectory) for storing the changed directory in the terms of the revised directory structure.
+int directoryChanger(char *actDirectory, char* path, char * correctedPath);//given an actual directory path, it converts the path into one with the revised ~.
+int commandParse(char *command, char **revisedCommand, int *numOfArguments);//it parses the command into (command and arguments) and adds it to the a buffer(revisedCommand)
+int executeCommand(char *command, char **args, char *directory, int procedure);//executes commands designed by me
+int executeSystemCommand(char * command, char **args, int procedure, int numOfArguments);//executes various other commands.
+int reverseDirectoryChanger(char * homeDirectory, char *givenDirectory, char *revisedDirectory);//converts the directory from new ~ format to the original format.
 int main(){
     char *user = (char *)malloc(sizeof(char)*100);
     char *computer = (char *)malloc(sizeof(char)*200);
     char *directory = (char *)malloc(sizeof(char)*1000);
     char *command = (char *)malloc(sizeof(char)*1000);
-    char **revisedCommand = (char **)malloc(sizeof(char*)*4);
-    for(int i=0;i<4;i++){
+    char **revisedCommand = (char **)malloc(sizeof(char*)*15);
+    for(int i=0;i<15;i++){
         revisedCommand[i]= (char *)malloc(sizeof(char)*1000);
     }
     char homeDirectory[1000];
     char *currentDirectory = (char *)malloc(sizeof(char)*1000);
+    int numOfArguments=0;
     getlogin_r(user, 100);
     gethostname(computer, 200);
     getcwd(currentDirectory, 1000);
-    getcwd(homeDirectory, 1000);
-    strcat(currentDirectory, "/");
+    getcwd(homeDirectory, 1000);//holds the value of the new ~
+    strcat(currentDirectory, "/");//holds the value of the current drectory regardless of ~
     strcat(homeDirectory, "/");
     while(1){
         
@@ -45,14 +46,14 @@ int main(){
         char *token;
         token = strtok(command, ";");
         while(token!=NULL){
-            for(int i=0;i<3;i++){
-                strcpy(revisedCommand[i], "\0");
-            }
-            commandParse(token, revisedCommand);
+            commandParse(token, revisedCommand, &numOfArguments);
+            // for(int h=0;h<numOfArguments;h++){
+            //     printf("%d %s\n", h, revisedCommand[h]);
+            // }
             if(strcmp(revisedCommand[0], "exit")==0){
                 exit(0);
             }
-            if(revisedCommand[2][0]!='&'){
+            if(revisedCommand[numOfArguments-1][0]!='&'){
                 if(strcmp(revisedCommand[0], "cd")==0 || strcmp(revisedCommand[0], "ls")==0 || strcmp(revisedCommand[0], "echo")==0 ||strcmp(revisedCommand[0], "pwd")==0 || strcmp(revisedCommand[0], "pinfo")==0){
                     if(strcmp(revisedCommand[0], "cd")!=0){
                         executeCommand(revisedCommand[0], revisedCommand, homeDirectory,  0);
@@ -62,16 +63,11 @@ int main(){
                     }
                 }
                 else{
-                    executeSystemCommand(revisedCommand[0], revisedCommand, 0);
+                    executeSystemCommand(revisedCommand[0], revisedCommand, 0, numOfArguments);
                 }
             }
             else{
-                executeSystemCommand(revisedCommand[0], revisedCommand, 1);
-            }
-            for(int j=0;j<3;j++){
-                for(int h=0;h<1000;h++){
-                    revisedCommand[j][h]='\0';
-                }
+                executeSystemCommand(revisedCommand[0], revisedCommand, 1, numOfArguments);
             }
             token = strtok(NULL, ";");
         }
@@ -80,13 +76,11 @@ int main(){
     }
     return 0;
 }
-int commandParse(char *command, char **revisedCommand){
+int commandParse(char *command, char **revisedCommand, int *numOfArguments){
     int k=0;
     int echoAlert=0;
     int lsAlert=0;
-    for(int i=0;i<3;i++){
-        revisedCommand[i][0]='\0';
-    }
+    int directoryArg=0;
     while(command[k]=='\t'||command[k]==' '){
         k++;
     }
@@ -96,6 +90,8 @@ int commandParse(char *command, char **revisedCommand){
         n++;
         k++;
     }
+    revisedCommand[0][n]='\0';
+    *numOfArguments=1;
     if(strcmp(revisedCommand[0], "echo")==0){
         echoAlert=1;
     }
@@ -113,7 +109,9 @@ int commandParse(char *command, char **revisedCommand){
                 m++;
             }
             k++;
-        }   
+        }
+        revisedCommand[1][m]='\0';
+        *numOfArguments++;   
     }
     else if(lsAlert==1){
         int m=0; int lAlert=0; int aAlert=0;
@@ -138,11 +136,13 @@ int commandParse(char *command, char **revisedCommand){
                 }
             }
             else{
+                directoryArg=1;
                 while(command[k]!='\t'&&command[k]!=' '&&command[k]!='\0'){
                     revisedCommand[1][m]=command[k];
                     m++;
                     k++;
                 }
+                revisedCommand[1][m]='\0';
                 while(command[k]=='\t'||command[k]==' '){
                     k++;
                 }
@@ -167,11 +167,13 @@ int commandParse(char *command, char **revisedCommand){
                 }
             }
             else{
+                directoryArg=1;
                 while(command[k]!='\t'&&command[k]!=' '&&command[k]!='\0'){
                     revisedCommand[1][m]=command[k];
                     m++;
                     k++;
                 }
+                revisedCommand[1][m]='\0';
                 while(command[k]=='\t'||command[k]==' '){
                     k++;
                 }   
@@ -196,65 +198,93 @@ int commandParse(char *command, char **revisedCommand){
                 }
             }
             else{
+                directoryArg=1;
                 while(command[k]!='\t'&&command[k]!=' '&&command[k]!='\0'){
                     revisedCommand[1][m]=command[k];
                     m++;
                     k++;
                 }
+                revisedCommand[1][m]='\0';
                 while(command[k]=='\t'||command[k]==' '){
                     k++;
                 }
             } 
         }
         if(lAlert==1&&aAlert==0){
-            if(revisedCommand[1][0]=='\0'){
+            if(directoryArg==0){
                 strcpy(revisedCommand[1], "-l");
+                *numOfArguments++;
             }
             else{
                 strcpy(revisedCommand[2], "-l");
+                *numOfArguments+=2;
             }
         }
         else if(lAlert==0 &&aAlert==1){
-            if(revisedCommand[1][0]=='\0'){
+            if(directoryArg==0){
                 strcpy(revisedCommand[1], "-a");
+                *numOfArguments++;
             }
             else{
                 strcpy(revisedCommand[2], "-a");
+                *numOfArguments+=2;
             }
         }
         else if(lAlert==0&&aAlert==0){
-            if(revisedCommand[1][0]=='\0'){
+            if(directoryArg==0){
                 strcpy(revisedCommand[1], "\0");
+                *numOfArguments++;
             }
             else{
                 strcpy(revisedCommand[2], "\0");
+                *numOfArguments+=2;
             }
         }
         else{
-            if(revisedCommand[1][0]=='\0'){
+            if(directoryArg==0){
                 strcpy(revisedCommand[1], "-la");
+                *numOfArguments++;
             }
             else{
                 strcpy(revisedCommand[2], "-la");
+                *numOfArguments+=2;
             }
         }
     }
     else{
         int m=0;
+        int n=0;
         while(k<strlen(command)){
+            n++;
+            m=0;
+            while(command[k]!='\t'&&command[k]!=' '){
+                revisedCommand[n][m]=command[k];
+                k++;
+                m++;
+            }
+            revisedCommand[n][m]='\0';
             while(command[k]=='\t'||command[k]==' '){
                 k++;
             }
-            if((command[k-1]=='\t' || command[k-1]==' ' )&& command[k]=='&'){
-                revisedCommand[2][0]='&';
-                break;
-            }
-            if(command[k]!='\"'&& command[k]!='\''){
-                revisedCommand[1][m] = command[k];
-                m++;
-            }
-            k++;
         }
+        *numOfArguments+=n;
+        *numOfArguments++;
+        // while(k<strlen(command)){
+        //     while(command[k]=='\t'||command[k]==' '){
+        //         k++;
+        //     }
+        //     if((command[k-1]=='\t' || command[k-1]==' ' )&& command[k]=='&'){
+        //         revisedCommand[2][0]='&';
+        //         revisedCommand[2][1]='\0';
+        //         break;
+        //     }
+        //     if(command[k]!='\"'&& command[k]!='\''){
+        //         revisedCommand[1][m] = command[k];
+        //         m++;
+        //     }
+        //     k++;
+        // }
+        // revisedCommand[1][m]='\0';
     }
     return 0;
 }
@@ -325,12 +355,17 @@ int executeCommand(char *command, char **args, char *directory, int procedure){
     }
     return 0;
 }
-int executeSystemCommand(char * command, char **args, int procedure){
+int executeSystemCommand(char * command, char **args, int procedure, int numOfArguments){
     if(procedure==0){
         pid_t childPID = fork();
         if(childPID == 0){
-            if(args[1][0]!='\0'){
-                char *arg[]={command, args[1], NULL};
+            if(numOfArguments>=2){
+                char** arg=(char **)malloc(sizeof(char*)*(numOfArguments+1));
+                for(int i=0;i<numOfArguments;i++){
+                    arg[i]=(char *)malloc(sizeof(char)*1000);
+                    strcpy(arg[i], args[i]);
+                }
+                arg[numOfArguments]=NULL;
                 if(execvp(command, arg)<0){
                     printf("Error:%s\n", strerror(errno));
                     exit(-1);
@@ -354,8 +389,13 @@ int executeSystemCommand(char * command, char **args, int procedure){
         if(fstGen==0){
             pid_t sndGen = fork();
             if(sndGen == 0){
-                if(args[1][0]!='\0'){
-                    char *arg[]={command, args[1], NULL};
+                if(numOfArguments>=3){
+                    char** arg=(char **)malloc(sizeof(char*)*(numOfArguments));
+                    for(int i=0;i<numOfArguments-1;i++){
+                        arg[i]=(char *)malloc(sizeof(char)*1000);
+                        strcpy(arg[i], args[i]);
+                    }
+                    arg[numOfArguments-1]=NULL;
                     if(execvp(command, arg)<0){
                         printf("Error:%s\n", strerror(errno));
                         exit(-1);
