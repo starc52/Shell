@@ -269,22 +269,6 @@ int commandParse(char *command, char **revisedCommand, int *numOfArguments){
         }
         *numOfArguments+=n;
         *numOfArguments++;
-        // while(k<strlen(command)){
-        //     while(command[k]=='\t'||command[k]==' '){
-        //         k++;
-        //     }
-        //     if((command[k-1]=='\t' || command[k-1]==' ' )&& command[k]=='&'){
-        //         revisedCommand[2][0]='&';
-        //         revisedCommand[2][1]='\0';
-        //         break;
-        //     }
-        //     if(command[k]!='\"'&& command[k]!='\''){
-        //         revisedCommand[1][m] = command[k];
-        //         m++;
-        //     }
-        //     k++;
-        // }
-        // revisedCommand[1][m]='\0';
     }
     return 0;
 }
