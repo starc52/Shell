@@ -25,10 +25,6 @@ int main(){
     char homeDirectory[1000];
     char *currentDirectory = (char *)malloc(sizeof(char)*1000);
     int numOfArguments=0;
-    char *inputFilePath=(char *)malloc(sizeof(char)*1000);
-    char *outputFilePath=(char *)malloc(sizeof(char)*1000);
-    char *inputPlusCommand=(char *)malloc(sizeof(char)*2000);
-    char *redirectionCommand=(char *)malloc(sizeof(char)*1000);
     getlogin_r(user, 100);
     gethostname(computer, 200);
     getcwd(currentDirectory, 1000);
@@ -50,57 +46,28 @@ int main(){
         char *token;
         token = strtok(command, ";");
         while(token!=NULL){
-            printf("token is %s\n", token);
-            char *tokenOutput;
-            tokenOutput=strtok(token, ">");
-            int index=0;
-            while(tokenOutput!=NULL){
-                printf("tokenOutput is %s\n", tokenOutput);
-                if(index==0){
-                    inputPlusCommand=tokenOutput;
-                }
-                else{
-                    outputFilePath=tokenOutput;
-                }
-                tokenOutput = strtok(NULL, ">");
-                index++;
-            }
-            char *tokenInput;
-            tokenInput=strtok(inputPlusCommand, "<");
-            index=0;
-            while(tokenInput!=NULL){
-                printf("tokenInput is %s\n", tokenInput);
-                if(index==0){
-                    redirectionCommand=tokenInput;
-                }
-                else{
-                    inputFilePath=tokenInput;
-                }
-                tokenInput=strtok(NULL, "<");
-                index++;
-            }
-            printf("%s;:%s;:%s;\n", redirectionCommand, inputFilePath, outputFilePath);
-            commandParse(redirectionCommand, revisedCommand, &numOfArguments);
+            commandParse(token, revisedCommand, &numOfArguments);
+            // for(int h=0;h<numOfArguments;h++){
+            //     printf("%d %s\n", h, revisedCommand[h]);
+            // }
             if(strcmp(revisedCommand[0], "exit")==0){
                 exit(0);
             }
-            if(inputFilePath==NULL&&outputFilePath==NULL){
-                if(revisedCommand[numOfArguments-1][0]!='&'){
-                    if(strcmp(revisedCommand[0], "cd")==0 || strcmp(revisedCommand[0], "ls")==0 || strcmp(revisedCommand[0], "echo")==0 ||strcmp(revisedCommand[0], "pwd")==0 || strcmp(revisedCommand[0], "pinfo")==0){
-                        if(strcmp(revisedCommand[0], "cd")!=0){
-                            executeCommand(revisedCommand[0], revisedCommand, homeDirectory,  0);
-                        }
-                        else{
-                            cd(revisedCommand[1], homeDirectory, currentDirectory);
-                        }
+            if(revisedCommand[numOfArguments-1][0]!='&'){
+                if(strcmp(revisedCommand[0], "cd")==0 || strcmp(revisedCommand[0], "ls")==0 || strcmp(revisedCommand[0], "echo")==0 ||strcmp(revisedCommand[0], "pwd")==0 || strcmp(revisedCommand[0], "pinfo")==0){
+                    if(strcmp(revisedCommand[0], "cd")!=0){
+                        executeCommand(revisedCommand[0], revisedCommand, homeDirectory,  0);
                     }
                     else{
-                        executeSystemCommand(revisedCommand[0], revisedCommand, 0, numOfArguments);
+                        cd(revisedCommand[1], homeDirectory, currentDirectory);
                     }
                 }
                 else{
-                    executeSystemCommand(revisedCommand[0], revisedCommand, 1, numOfArguments);
+                    executeSystemCommand(revisedCommand[0], revisedCommand, 0, numOfArguments);
                 }
+            }
+            else{
+                executeSystemCommand(revisedCommand[0], revisedCommand, 1, numOfArguments);
             }
             token = strtok(NULL, ";");
         }
