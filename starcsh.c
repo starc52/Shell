@@ -6,12 +6,14 @@
 #include<string.h>
 #include<readline/readline.h>
 #include<readline/history.h>
+#include<fcntl.h>
 #include<errno.h>
+int checkRedirect(char *fullCommand, char *inputFile, char *outputFile, char *action, int *append);//checks for redirection symbols, and gives input, output, and action accordingly. note that input, output are null pointers if there doesnt exist one. action is not trimmed.
 int cd(char * path, char * homeDirectory, char *newDirectory);//given a path(path) entered by user, the actual home directory(homeDirectory), and a buffer(newDirectory) for storing the changed directory in the terms of the revised directory structure.
 int directoryChanger(char *actDirectory, char* path, char * correctedPath);//given an actual directory path, it converts the path into one with the revised ~.
 int commandParse(char *command, char **revisedCommand, int *numOfArguments);//it parses the command into (command and arguments) and adds it to the a buffer(revisedCommand)
-int executeCommand(char *command, char **args, char *directory, int procedure);//executes commands designed by me
-int executeSystemCommand(char * command, char **args, int procedure, int numOfArguments);//executes various other commands.
+int executeCommand(char *command, char **args, char *directory, int procedure, char *inputFile, char *outputFile, int append, int redirect);//executes commands designed by me
+int executeSystemCommand(char * command, char **args, int procedure, int numOfArguments, char *inputFile, char *outputFile, int append, int redirect);//executes various other commands.
 int reverseDirectoryChanger(char * homeDirectory, char *givenDirectory, char *revisedDirectory);//converts the directory from new ~ format to the original format.
 int main(){
     char *user = (char *)malloc(sizeof(char)*100);
@@ -32,7 +34,6 @@ int main(){
     strcat(currentDirectory, "/");//holds the value of the current drectory regardless of ~
     strcat(homeDirectory, "/");
     while(1){
-        
         directoryChanger(homeDirectory, currentDirectory, directory);
         if(strcmp(directory, "//")==0){
             strcpy(directory, "/");
@@ -46,7 +47,14 @@ int main(){
         char *token;
         token = strtok(command, ";");
         while(token!=NULL){
-            commandParse(token, revisedCommand, &numOfArguments);
+            //printf("%s is the token\n", token);
+            char *inputFile=(char *)malloc(sizeof(char)*1000);
+            char *outputFile=(char *)malloc(sizeof(char)*1000);
+            char *action=(char*)malloc(sizeof(char)*2000);
+            int append = 0;
+            int redirect = checkRedirect(token, inputFile, outputFile, action, &append);
+            commandParse(action, revisedCommand, &numOfArguments);
+            printf("%s append value %d\n", action, append);
             // for(int h=0;h<numOfArguments;h++){
             //     printf("%d %s\n", h, revisedCommand[h]);
             // }
@@ -56,25 +64,264 @@ int main(){
             if(revisedCommand[numOfArguments-1][0]!='&'){
                 if(strcmp(revisedCommand[0], "cd")==0 || strcmp(revisedCommand[0], "ls")==0 || strcmp(revisedCommand[0], "echo")==0 ||strcmp(revisedCommand[0], "pwd")==0 || strcmp(revisedCommand[0], "pinfo")==0){
                     if(strcmp(revisedCommand[0], "cd")!=0){
-                        executeCommand(revisedCommand[0], revisedCommand, homeDirectory,  0);
+                        for(int iterag=0;iterag<numOfArguments;iterag++){
+                            printf("%d %s\n", iterag, revisedCommand[iterag]);
+                        }
+                        executeCommand(revisedCommand[0], revisedCommand, homeDirectory,  0, inputFile, outputFile, append, redirect);
                     }
                     else{
                         cd(revisedCommand[1], homeDirectory, currentDirectory);
                     }
                 }
                 else{
-                    executeSystemCommand(revisedCommand[0], revisedCommand, 0, numOfArguments);
+                    for(int iterag=0;iterag<numOfArguments;iterag++){
+                        printf("%d %s\n", iterag, revisedCommand[iterag]);
+                    }
+                    executeSystemCommand(revisedCommand[0], revisedCommand, 0, numOfArguments, inputFile, outputFile, append, redirect);
                 }
             }
             else{
-                executeSystemCommand(revisedCommand[0], revisedCommand, 1, numOfArguments);
+                for(int iterag=0;iterag<numOfArguments;iterag++){
+                    printf("%d %s\n",iterag, revisedCommand[iterag]);
+                }
+                executeSystemCommand(revisedCommand[0], revisedCommand, 1, numOfArguments, inputFile, outputFile, append, redirect);
             }
             token = strtok(NULL, ";");
+            free(action);
+            free(inputFile);
+            free(outputFile);
         }
         getcwd(currentDirectory, 1000); 
         strcat(currentDirectory, "/");          
     }
     return 0;
+}
+int checkRedirect(char *fullCommand, char *inputFile, char *outputFile, char *action, int *append){
+    int length =strlen(fullCommand);
+    int lessPos=-1, greaterPos=-1;
+    for(int itera1=0;itera1<length;itera1++){
+        if(fullCommand[itera1]=='>'&&fullCommand[itera1+1]=='>'){
+            *append=1;
+            break;
+        }
+    }
+    if(*append!=1){
+        for(int h=0;h<length;h++){
+            if(fullCommand[h]=='<'){
+                lessPos=h;
+            }
+            else if(fullCommand[h]=='>'){
+                greaterPos=h;
+            }
+        }
+        if(lessPos==-1){
+            if(greaterPos==-1){
+                int i=0;
+                for(i=0;i<length;i++){
+                    if(fullCommand[i]!=' '&&fullCommand[i]!='\t'){
+                        break;
+                    }
+                }
+                int j=0;
+                for(j=length-1;j>=0;j--){
+                    if(fullCommand[j]!=' '&&fullCommand[j]!='\t'){
+                        break;
+                    }
+                }
+                inputFile=NULL;
+                outputFile=NULL;
+                int cursor=0;
+                for(int ind=i;ind<=j;ind++){
+                    action[cursor]=fullCommand[ind];
+                    cursor++;
+                }
+                action[cursor]='\0';
+                return 0;
+            }
+            else{
+                int i=0;
+                for(i=greaterPos+1;i<length;i++){
+                    if(fullCommand[i]!=' '&&fullCommand[i]!='\t'){
+                        break;
+                    }
+                }
+                int j=0;
+                for(j=length-1;j>greaterPos;j--){
+                    if(fullCommand[j]!=' '&&fullCommand[j]!='\t'){
+                        break;
+                    }
+                }
+                inputFile=NULL;
+                int cursor=0;
+                for(int ind=i;ind<=j;ind++){
+                    outputFile[cursor]=fullCommand[ind];
+                    cursor++;
+                }
+                outputFile[cursor]='\0';
+                cursor=0;
+                for(int ind=0;ind<greaterPos;ind++){
+                    action[cursor]=fullCommand[ind];
+                    cursor++;
+                }
+                action[cursor]='\0';
+                return 1;
+            }
+        }
+        else{
+            if(greaterPos==-1){
+                int i=0;
+                for(i=lessPos+1;i<length;i++){
+                    if(fullCommand[i]!=' '&&fullCommand[i]!='\t'){
+                        break;
+                    }
+                }
+                int j=0;
+                for(j=length-1;j>lessPos;j--){
+                    if(fullCommand[j]!=' '&&fullCommand[j]!='\t'){
+                        break;
+                    }
+                }
+                int cursor=0;
+                for(int ind=i;ind<=j;ind++){
+                    inputFile[cursor]=fullCommand[ind];
+                    cursor++;
+                }
+                inputFile[cursor]='\0';
+                outputFile=NULL;
+                cursor=0;
+                for(int ind=0;ind<lessPos;ind++){
+                    action[cursor]=fullCommand[ind];
+                    cursor++;
+                }
+                action[cursor]='\0';
+                return 2;
+            }
+            else{
+                int i1=0, i2=0;
+                for(i2=greaterPos+1;i2<length;i2++){
+                    if(fullCommand[i2]!=' '&&fullCommand[i2]!='\t'){
+                        break;
+                    }
+                }
+                int j1=0, j2=0;
+                for(j2=length-1;j2>greaterPos;j2--){
+                    if(fullCommand[j2]!=' '&&fullCommand[j2]!='\t'){
+                        break;
+                    }
+                }
+                for(i1=lessPos+1;i1<greaterPos;i1++){
+                    if(fullCommand[i1]!=' '&&fullCommand[i1]!='\t'){
+                        break;
+                    }
+                }
+                for(j1=greaterPos-1;j1>lessPos;j1--){
+                    if(fullCommand[j1]!=' '&&fullCommand[j1]!='\t'){
+                        break;
+                    }
+                }
+                int cursor=0;
+                for(int ind=i1;ind<=j1;ind++){
+                    inputFile[cursor]=fullCommand[ind];
+                    cursor++;
+                }
+                inputFile[cursor]='\0';
+                cursor=0;
+                for(int ind=i2;ind<=j2;ind++){
+                    outputFile[cursor]=fullCommand[ind];
+                    cursor++;
+                }
+                outputFile[cursor]='\0';
+                cursor=0;
+                for(int ind=0;ind<lessPos;ind++){
+                    action[cursor]=fullCommand[ind];
+                    cursor++;
+                }
+                action[cursor]='\0';
+                return 3;
+            }
+        }
+    }
+    else{
+        for(int h=0;h<length;h++){
+            if(fullCommand[h]=='<'){
+                lessPos=h;
+            }
+            else if(fullCommand[h]=='>'){
+                greaterPos=h;
+            }
+        }
+        if(lessPos==-1){
+            int i=0;
+            for(i=greaterPos+1;i<length;i++){
+                if(fullCommand[i]!=' '&&fullCommand[i]!='\t'){
+                    break;
+                }
+            }
+            int j=0;
+            for(j=length-1;j>greaterPos;j--){
+                if(fullCommand[j]!=' '&&fullCommand[j]!='\t'){
+                    break;
+                }
+            }
+            inputFile=NULL;
+            int cursor=0;
+            for(int ind=i;ind<=j;ind++){
+                outputFile[cursor]=fullCommand[ind];
+                cursor++;
+            }
+            outputFile[cursor]='\0';
+            cursor=0;
+            for(int ind=0;ind<greaterPos-1;ind++){
+                action[cursor]=fullCommand[ind];
+                cursor++;
+            }
+            action[cursor]='\0';
+            return 1;
+        }
+        else{
+            int i1=0, i2=0;
+            for(i2=greaterPos+1;i2<length;i2++){
+                if(fullCommand[i2]!=' '&&fullCommand[i2]!='\t'){
+                    break;
+                }
+            }
+            int j1=0, j2=0;
+            for(j2=length-1;j2>greaterPos;j2--){
+                if(fullCommand[j2]!=' '&&fullCommand[j2]!='\t'){
+                    break;
+                }
+            }
+            for(i1=lessPos+1;i1<greaterPos-1;i1++){
+                if(fullCommand[i1]!=' '&&fullCommand[i1]!='\t'){
+                    break;
+                }
+            }
+            for(j1=greaterPos-2;j1>lessPos;j1--){
+                if(fullCommand[j1]!=' '&&fullCommand[j1]!='\t'){
+                    break;
+                }
+            }
+            int cursor=0;
+            for(int ind=i1;ind<=j1;ind++){
+                inputFile[cursor]=fullCommand[ind];
+                cursor++;
+            }
+            inputFile[cursor]='\0';
+            cursor=0;
+            for(int ind=i2;ind<=j2;ind++){
+                outputFile[cursor]=fullCommand[ind];
+                cursor++;
+            }
+            outputFile[cursor]='\0';
+            cursor=0;
+            for(int ind=0;ind<lessPos;ind++){
+                action[cursor]=fullCommand[ind];
+                cursor++;
+            }
+            action[cursor]='\0';
+            return 3;
+        }
+    }
 }
 int commandParse(char *command, char **revisedCommand, int *numOfArguments){
     int k=0;
@@ -272,99 +519,482 @@ int commandParse(char *command, char **revisedCommand, int *numOfArguments){
     }
     return 0;
 }
-int executeCommand(char *command, char **args, char *directory, int procedure){
+int executeCommand(char *command, char **args, char *directory, int procedure, char *inputFile, char *outputFile, int append, int redirect){
     if(strcmp(command, "ls")!=0){
         char *path = (char *)malloc(sizeof(char)*1000);
         strcpy(path, directory);
         strcat(path, command);
+        int fdin, fdout;
+        if(redirect==3){
+            fdin = open(inputFile, O_RDONLY);
+            if(fdin<0){
+                printf("Input File Error:%s\n", strerror(errno));
+                exit(-1);
+            }
+            if(append==1){
+                fdout = open(outputFile, O_CREAT|O_RDWR|O_APPEND, 0700);
+            }
+            else{
+                fdout = open(outputFile, O_TRUNC|O_CREAT|O_RDWR, 0700);
+            }
+            if(fdout<0){
+                printf("Output File Error:%s\n", strerror(errno));
+                exit(-1);
+            }
+        }
+        else if(redirect==2){
+            fdin = open(inputFile, O_RDONLY);
+            if(fdin<0){
+                printf("Input File Error:%s\n", strerror(errno));
+                exit(-1);
+            }
+        }
+        else if(redirect==1){
+            if(append==1){
+                fdout = open(outputFile, O_CREAT|O_RDWR|O_APPEND, 0700);
+            }
+            else{
+                fdout = open(outputFile, O_TRUNC|O_CREAT|O_RDWR, 0700);
+            }
+            if(fdout<0){
+                printf("Output File Error:%s\n", strerror(errno));
+                exit(-1);
+            }
+        }
         pid_t childPID = fork();
-        if(childPID == 0){
-            if(args[1][0]=='\0'){
-                char *arg[]={command, directory, NULL};
-                if(execv(path, arg)<0){
-                    printf("Error:%s\n", strerror(errno));
-                    exit(-1);
+        if(redirect==3){
+            printf("here1 %s %s\n", inputFile, outputFile);            
+            if(childPID == 0){
+                dup2(fdin, 0);
+                dup2(fdout, 1);
+                if(args[1][0]=='\0'){
+                    char *arg[]={command, directory, NULL};
+                    if(execv(path, arg)<0){
+                        printf("Error:%s\n", strerror(errno));
+                        exit(-1);
+                    }
+                }
+                else{
+                    char *arg[]={command, args[1], directory, NULL};
+                    if(execv(path, arg)<0){
+                        printf("Error:%s\n", strerror(errno));
+                        exit(-1);
+                    }
                 }
             }
             else{
-                char *arg[]={command, args[1], directory, NULL};
-                if(execv(path, arg)<0){
-                    printf("Error:%s\n", strerror(errno));
-                    exit(-1);
-                }
+                wait(NULL);
             }
         }
-        else{
-            wait(NULL);
+        else if(redirect==2){
+            printf("here2 %s\n", inputFile);            
+            if(childPID == 0){
+                dup2(fdin, 0);
+                if(args[1][0]=='\0'){
+                    char *arg[]={command, directory, NULL};
+                    if(execv(path, arg)<0){
+                        printf("Error:%s\n", strerror(errno));
+                        exit(-1);
+                    }
+                }
+                else{
+                    char *arg[]={command, args[1], directory, NULL};
+                    if(execv(path, arg)<0){
+                        printf("Error:%s\n", strerror(errno));
+                        exit(-1);
+                    }
+                }
+            }
+            else{
+                wait(NULL);
+            }
+        }
+        else if(redirect==1){
+            printf("here3 %s\n", outputFile);                        
+            if(childPID == 0){
+                dup2(fdout, 1);
+                if(args[1][0]=='\0'){
+                    char *arg[]={command, directory, NULL};
+                    if(execv(path, arg)<0){
+                        printf("Error:%s\n", strerror(errno));
+                        exit(-1);
+                    }
+                }
+                else{
+                    char *arg[]={command, args[1], directory, NULL};
+                    if(execv(path, arg)<0){
+                        printf("Error:%s\n", strerror(errno));
+                        exit(-1);
+                    }
+                }
+            }
+            else{
+                wait(NULL);
+            }
+        }
+        else if(redirect==0){
+            if(childPID == 0){
+                if(args[1][0]=='\0'){
+                    char *arg[]={command, directory, NULL};
+                    if(execv(path, arg)<0){
+                        printf("Error:%s\n", strerror(errno));
+                        exit(-1);
+                    }
+                }
+                else{
+                    char *arg[]={command, args[1], directory, NULL};
+                    if(execv(path, arg)<0){
+                        printf("Error:%s\n", strerror(errno));
+                        exit(-1);
+                    }
+                }
+            }
+            else{
+                wait(NULL);
+            }
         }
     }
     else{
         char *path = (char *)malloc(sizeof(char)*1000);
         strcpy(path, directory);
         strcat(path, command);
+        int fdin, fdout;
+        if(redirect==3){
+            fdin = open(inputFile, O_RDONLY);
+            if(fdin<0){
+                printf("Input File Error:%s\n", strerror(errno));
+                exit(-1);
+            }
+            if(append==1){
+                fdout = open(outputFile, O_CREAT|O_RDWR|O_APPEND, 0700);
+            }
+            else{
+                fdout = open(outputFile, O_TRUNC|O_CREAT|O_RDWR, 0700);
+            }
+            if(fdout<0){
+                printf("Output File Error:%s\n", strerror(errno));
+                exit(-1);
+            }
+        }
+        else if(redirect==2){
+            fdin = open(inputFile, O_RDONLY);
+            if(fdin<0){
+                printf("Input File Error:%s\n", strerror(errno));
+                exit(-1);
+            }
+        }
+        else if(redirect==1){
+            if(append==1){
+                fdout = open(outputFile, O_CREAT|O_RDWR|O_APPEND, 0700);
+            }
+            else{
+                fdout = open(outputFile, O_TRUNC|O_CREAT|O_RDWR, 0700);
+            }
+            if(fdout<0){
+                printf("Output File Error:%s\n", strerror(errno));
+                exit(-1);
+            }
+        }
         pid_t childPID = fork();
-        if(childPID == 0){
-            if(args[1][0]=='\0' &&args[2][0]=='\0'){
-                char *arg[]={command, directory, NULL};
-                if(execv(path, arg)<0){
-                    printf("Error:%s\n", strerror(errno));
-                    exit(-1);
+        if(redirect==3){
+            if(childPID == 0){
+                dup2(fdin, 0);
+                dup2(fdout, 1);
+                if(args[1][0]=='\0' &&args[2][0]=='\0'){
+                    char *arg[]={command, directory, NULL};
+                    if(execv(path, arg)<0){
+                        printf("Error:%s\n", strerror(errno));
+                        exit(-1);
+                    }
                 }
-            }
-            else if(args[1][0]=='\0'&&args[2][0]!='\0'){
-                char *arg[]={command, args[2], directory, NULL};
-                if(execv(path, arg)<0){
-                    printf("Error:%s\n", strerror(errno));
-                    exit(-1);
+                else if(args[1][0]=='\0'&&args[2][0]!='\0'){
+                    char *arg[]={command, args[2], directory, NULL};
+                    if(execv(path, arg)<0){
+                        printf("Error:%s\n", strerror(errno));
+                        exit(-1);
+                    }
                 }
-            }
-            else if(args[1][0]!='\0'&&args[2][0]=='\0'){
-                char *arg[]={command,args[1],directory, NULL};
-                if(execv(path, arg)<0){
-                    printf("Error:%s\n", strerror(errno));
-                    exit(-1);
+                else if(args[1][0]!='\0'&&args[2][0]=='\0'){
+                    char *arg[]={command,args[1],directory, NULL};
+                    if(execv(path, arg)<0){
+                        printf("Error:%s\n", strerror(errno));
+                        exit(-1);
+                    }
+                }
+                else{
+                    char *arg[]={command,args[1], args[2], directory, NULL};
+                    if(execv(path, arg)<0){
+                        printf("Error:%s\n", strerror(errno));
+                        exit(-1);
+                    }
                 }
             }
             else{
-                char *arg[]={command,args[1], args[2], directory, NULL};
-                if(execv(path, arg)<0){
-                    printf("Error:%s\n", strerror(errno));
-                    exit(-1);
-                }
+                wait(NULL);
             }
         }
-        else{
-            wait(NULL);
+        else if(redirect==2){
+            printf("here5 %s \n", inputFile);
+            if(childPID == 0){
+                dup2(fdin, 0);
+                if(args[1][0]=='\0' &&args[2][0]=='\0'){
+                    char *arg[]={command, directory, NULL};
+                    if(execv(path, arg)<0){
+                        printf("Error:%s\n", strerror(errno));
+                        exit(-1);
+                    }
+                }
+                else if(args[1][0]=='\0'&&args[2][0]!='\0'){
+                    char *arg[]={command, args[2], directory, NULL};
+                    if(execv(path, arg)<0){
+                        printf("Error:%s\n", strerror(errno));
+                        exit(-1);
+                    }
+                }
+                else if(args[1][0]!='\0'&&args[2][0]=='\0'){
+                    char *arg[]={command,args[1],directory, NULL};
+                    if(execv(path, arg)<0){
+                        printf("Error:%s\n", strerror(errno));
+                        exit(-1);
+                    }
+                }
+                else{
+                    char *arg[]={command,args[1], args[2], directory, NULL};
+                    if(execv(path, arg)<0){
+                        printf("Error:%s\n", strerror(errno));
+                        exit(-1);
+                    }
+                }
+            }
+            else{
+                wait(NULL);
+            }
+        }
+        else if(redirect==1){
+            printf("here 6%s\n", outputFile);                        
+            if(childPID == 0){
+                dup2(fdout, 1);
+                if(args[1][0]=='\0' &&args[2][0]=='\0'){
+                    char *arg[]={command, directory, NULL};
+                    if(execv(path, arg)<0){
+                        printf("Error:%s\n", strerror(errno));
+                        exit(-1);
+                    }
+                }
+                else if(args[1][0]=='\0'&&args[2][0]!='\0'){
+                    char *arg[]={command, args[2], directory, NULL};
+                    if(execv(path, arg)<0){
+                        printf("Error:%s\n", strerror(errno));
+                        exit(-1);
+                    }
+                }
+                else if(args[1][0]!='\0'&&args[2][0]=='\0'){
+                    char *arg[]={command,args[1],directory, NULL};
+                    if(execv(path, arg)<0){
+                        printf("Error:%s\n", strerror(errno));
+                        exit(-1);
+                    }
+                }
+                else{
+                    char *arg[]={command,args[1], args[2], directory, NULL};
+                    if(execv(path, arg)<0){
+                        printf("Error:%s\n", strerror(errno));
+                        exit(-1);
+                    }
+                }
+            }
+            else{
+                wait(NULL);
+            }
+        }
+        else if(redirect==0){
+            if(childPID == 0){
+                if(args[1][0]=='\0' &&args[2][0]=='\0'){
+                    char *arg[]={command, directory, NULL};
+                    if(execv(path, arg)<0){
+                        printf("Error:%s\n", strerror(errno));
+                        exit(-1);
+                    }
+                }
+                else if(args[1][0]=='\0'&&args[2][0]!='\0'){
+                    char *arg[]={command, args[2], directory, NULL};
+                    if(execv(path, arg)<0){
+                        printf("Error:%s\n", strerror(errno));
+                        exit(-1);
+                    }
+                }
+                else if(args[1][0]!='\0'&&args[2][0]=='\0'){
+                    char *arg[]={command,args[1],directory, NULL};
+                    if(execv(path, arg)<0){
+                        printf("Error:%s\n", strerror(errno));
+                        exit(-1);
+                    }
+                }
+                else{
+                    char *arg[]={command,args[1], args[2], directory, NULL};
+                    if(execv(path, arg)<0){
+                        printf("Error:%s\n", strerror(errno));
+                        exit(-1);
+                    }
+                }
+            }
+            else{
+                wait(NULL);
+            }
         }
     }
     return 0;
 }
-int executeSystemCommand(char * command, char **args, int procedure, int numOfArguments){
+int executeSystemCommand(char * command, char **args, int procedure, int numOfArguments, char *inputFile, char *outputFile, int append, int redirect){
     if(procedure==0){
+        int fdin, fdout;
+        if(redirect==3){
+            fdin = open(inputFile, O_RDONLY);
+            if(fdin<0){
+                printf("Input File Error:%s\n", strerror(errno));
+                exit(-1);
+            }
+            if(append==1){
+                fdout = open(outputFile, O_CREAT|O_RDWR|O_APPEND, 0700);
+            }
+            else{
+                fdout = open(outputFile, O_TRUNC|O_CREAT|O_RDWR, 0700);
+            }
+            if(fdout<0){
+                printf("Output File Error:%s\n", strerror(errno));
+                exit(-1);
+            }
+        }
+        else if(redirect==2){
+            fdin = open(inputFile, O_RDONLY);
+            if(fdin<0){
+                printf("Input File Error:%s\n", strerror(errno));
+                exit(-1);
+            }
+        }
+        else if(redirect==1){
+            if(append==1){
+                fdout = open(outputFile, O_CREAT|O_RDWR|O_APPEND, 0700);
+            }
+            else{
+                fdout = open(outputFile, O_TRUNC|O_CREAT|O_RDWR, 0700);
+            }
+            if(fdout<0){
+                printf("Output File Error:%s\n", strerror(errno));
+                exit(-1);
+            }
+        }
         pid_t childPID = fork();
-        if(childPID == 0){
-            if(numOfArguments>=2){
-                char** arg=(char **)malloc(sizeof(char*)*(numOfArguments+1));
-                for(int i=0;i<numOfArguments;i++){
-                    arg[i]=(char *)malloc(sizeof(char)*1000);
-                    strcpy(arg[i], args[i]);
+        if(redirect==3){
+            printf("here 7%s %s\n", inputFile, outputFile);
+            if(childPID == 0){
+                dup2(fdin, 0);
+                dup2(fdout, 1);
+                if(numOfArguments>=2){
+                    char** arg=(char **)malloc(sizeof(char*)*(numOfArguments+1));
+                    for(int i=0;i<numOfArguments;i++){
+                        arg[i]=(char *)malloc(sizeof(char)*1000);
+                        strcpy(arg[i], args[i]);
+                    }
+                    arg[numOfArguments]=NULL;
+                    if(execvp(command, arg)<0){
+                        printf("Error:%s\n", strerror(errno));
+                        exit(-1);
+                    }
                 }
-                arg[numOfArguments]=NULL;
-                if(execvp(command, arg)<0){
-                    printf("Error:%s\n", strerror(errno));
-                    exit(-1);
+                else{
+                    char * arg[] = {command, NULL};
+                    if(execvp(command, arg)<0){
+                        printf("Error:%s\n", strerror(errno));
+                        exit(-1);
+                    }
                 }
             }
             else{
-                char * arg[] = {command, NULL};
-                if(execvp(command, arg)<0){
-                    printf("Error:%s\n", strerror(errno));
-                    exit(-1);
-                }
+                wait(NULL);
             }
         }
-        else{
-            wait(NULL);
+        else if(redirect==2){
+            printf("here8 %s\n", inputFile);            
+            if(childPID == 0){
+                dup2(fdin, 0);
+                if(numOfArguments>=2){
+                    char** arg=(char **)malloc(sizeof(char*)*(numOfArguments+1));
+                    for(int i=0;i<numOfArguments;i++){
+                        arg[i]=(char *)malloc(sizeof(char)*1000);
+                        strcpy(arg[i], args[i]);
+                    }
+                    arg[numOfArguments]=NULL;
+                    if(execvp(command, arg)<0){
+                        printf("Error:%s\n", strerror(errno));
+                        exit(-1);
+                    }
+                }
+                else{
+                    char * arg[] = {command, NULL};
+                    if(execvp(command, arg)<0){
+                        printf("Error:%s\n", strerror(errno));
+                        exit(-1);
+                    }
+                }
+            }
+            else{
+                wait(NULL);
+            }
+        }   
+        else if(redirect==1){
+            printf("here9 %s\n", outputFile);            
+            if(childPID == 0){
+                dup2(fdout, 1);
+                if(numOfArguments>=2){
+                    char** arg=(char **)malloc(sizeof(char*)*(numOfArguments+1));
+                    for(int i=0;i<numOfArguments;i++){
+                        arg[i]=(char *)malloc(sizeof(char)*1000);
+                        strcpy(arg[i], args[i]);
+                    }
+                    arg[numOfArguments]=NULL;
+                    if(execvp(command, arg)<0){
+                        printf("Error:%s\n", strerror(errno));
+                        exit(-1);
+                    }
+                }
+                else{
+                    char * arg[] = {command, NULL};
+                    if(execvp(command, arg)<0){
+                        printf("Error:%s\n", strerror(errno));
+                        exit(-1);
+                    }
+                }
+            }
+            else{
+                wait(NULL);
+            }
+        }
+        else if(redirect==0){
+            if(childPID == 0){
+                if(numOfArguments>=2){
+                    char** arg=(char **)malloc(sizeof(char*)*(numOfArguments+1));
+                    for(int i=0;i<numOfArguments;i++){
+                        arg[i]=(char *)malloc(sizeof(char)*1000);
+                        strcpy(arg[i], args[i]);
+                    }
+                    arg[numOfArguments]=NULL;
+                    if(execvp(command, arg)<0){
+                        printf("Error:%s\n", strerror(errno));
+                        exit(-1);
+                    }
+                }
+                else{
+                    char * arg[] = {command, NULL};
+                    if(execvp(command, arg)<0){
+                        printf("Error:%s\n", strerror(errno));
+                        exit(-1);
+                    }
+                }
+            }
+            else{
+                wait(NULL);
+            }
         }
     }
     else{
