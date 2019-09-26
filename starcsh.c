@@ -31,16 +31,19 @@ int main(){
     gethostname(computer, 200);
     getcwd(currentDirectory, 1000);
     getcwd(homeDirectory, 1000);//holds the value of the new ~
-    strcat(currentDirectory, "/");//holds the value of the current drectory regardless of ~
-    strcat(homeDirectory, "/");
+    //strcat(currentDirectory, "/");//holds the value of the current drectory regardless of ~, with an extra /.
+    //strcat(homeDirectory, "/");
     while(1){
         directoryChanger(homeDirectory, currentDirectory, directory);
-        if(strcmp(directory, "//")==0){
-            strcpy(directory, "/");
+        if(strcmp(directory, "~")!=0){
+            directory[strlen(directory)-1]='\0';
         }
         printf("<%s@%s:%s>", user, computer, directory);
         for(int i=0;i<1000;i++){
             command[i]='\0';
+        }
+        for(int ing=0;ing<15;ing++){
+            revisedCommand[ing][0]='\0';
         }
         scanf("%[^\n]", command);
         getchar();
@@ -54,7 +57,6 @@ int main(){
             int append = 0;
             int redirect = checkRedirect(token, inputFile, outputFile, action, &append);
             commandParse(action, revisedCommand, &numOfArguments);
-            printf("%s append value %d\n", action, append);
             // for(int h=0;h<numOfArguments;h++){
             //     printf("%d %s\n", h, revisedCommand[h]);
             // }
@@ -64,9 +66,9 @@ int main(){
             if(revisedCommand[numOfArguments-1][0]!='&'){
                 if(strcmp(revisedCommand[0], "cd")==0 || strcmp(revisedCommand[0], "ls")==0 || strcmp(revisedCommand[0], "echo")==0 ||strcmp(revisedCommand[0], "pwd")==0 || strcmp(revisedCommand[0], "pinfo")==0){
                     if(strcmp(revisedCommand[0], "cd")!=0){
-                        for(int iterag=0;iterag<numOfArguments;iterag++){
-                            printf("%d %s\n", iterag, revisedCommand[iterag]);
-                        }
+                        // for(int ing =0;ing<numOfArguments;ing++){
+                        //     printf("here %d %s\n",ing, revisedCommand[ing]);
+                        // }
                         executeCommand(revisedCommand[0], revisedCommand, homeDirectory,  0, inputFile, outputFile, append, redirect);
                     }
                     else{
@@ -74,16 +76,10 @@ int main(){
                     }
                 }
                 else{
-                    for(int iterag=0;iterag<numOfArguments;iterag++){
-                        printf("%d %s\n", iterag, revisedCommand[iterag]);
-                    }
                     executeSystemCommand(revisedCommand[0], revisedCommand, 0, numOfArguments, inputFile, outputFile, append, redirect);
                 }
             }
             else{
-                for(int iterag=0;iterag<numOfArguments;iterag++){
-                    printf("%d %s\n",iterag, revisedCommand[iterag]);
-                }
                 executeSystemCommand(revisedCommand[0], revisedCommand, 1, numOfArguments, inputFile, outputFile, append, redirect);
             }
             token = strtok(NULL, ";");
@@ -394,66 +390,68 @@ int commandParse(char *command, char **revisedCommand, int *numOfArguments){
                     k++;
                 }
             }
-            if(command[k]=='-'){
-                if(command[k+1]=='l'){
-                    lAlert=1;
-                    if(command[k+2]=='a'){
-                        aAlert=1;
-                    }
-                    k+=3;
-                }
-                else if(command[k+1]=='a'){
-                    aAlert=1;
-                    if(command[k+2]=='l'){
+            if(k<strlen(command)){
+                if(command[k]=='-'){
+                    if(command[k+1]=='l'){
                         lAlert=1;
+                        if(command[k+2]=='a'){
+                            aAlert=1;
+                        }
+                        k+=3;
                     }
-                    k+=3;
-                }
-                while(command[k]=='\t'||command[k]==' '){
-                    k++;
-                }
-            }
-            else{
-                directoryArg=1;
-                while(command[k]!='\t'&&command[k]!=' '&&command[k]!='\0'){
-                    revisedCommand[1][m]=command[k];
-                    m++;
-                    k++;
-                }
-                revisedCommand[1][m]='\0';
-                while(command[k]=='\t'||command[k]==' '){
-                    k++;
-                }   
-            }
-            if(command[k]=='-'){
-                if(command[k+1]=='l'){
-                    lAlert=1;
-                    if(command[k+2]=='a'){
+                    else if(command[k+1]=='a'){
                         aAlert=1;
+                        if(command[k+2]=='l'){
+                            lAlert=1;
+                        }
+                        k+=3;
                     }
-                    k+=3;
+                    while(command[k]=='\t'||command[k]==' '){
+                        k++;
+                    }
                 }
-                else if(command[k+1]=='a'){
-                    aAlert=1;
-                    if(command[k+2]=='l'){
+                else{
+                    directoryArg=1;
+                    while(command[k]!='\t'&&command[k]!=' '&&command[k]!='\0'){
+                        revisedCommand[1][m]=command[k];
+                        m++;
+                        k++;
+                    }
+                    revisedCommand[1][m]='\0';
+                    while(command[k]=='\t'||command[k]==' '){
+                        k++;
+                    }   
+                }
+                if(command[k]=='-'){
+                    if(command[k+1]=='l'){
                         lAlert=1;
+                        if(command[k+2]=='a'){
+                            aAlert=1;
+                        }
+                        k+=3;
                     }
-                    k+=3;
+                    else if(command[k+1]=='a'){
+                        aAlert=1;
+                        if(command[k+2]=='l'){
+                            lAlert=1;
+                        }
+                        k+=3;
+                    }
+                    while(command[k]=='\t'||command[k]==' '){
+                        k++;
+                    }
                 }
-                while(command[k]=='\t'||command[k]==' '){
-                    k++;
-                }
-            }
-            else{
-                directoryArg=1;
-                while(command[k]!='\t'&&command[k]!=' '&&command[k]!='\0'){
-                    revisedCommand[1][m]=command[k];
-                    m++;
-                    k++;
-                }
-                revisedCommand[1][m]='\0';
-                while(command[k]=='\t'||command[k]==' '){
-                    k++;
+                else{
+                    directoryArg=1;
+                    while(command[k]!='\t'&&command[k]!=' '&&command[k]!='\0'){
+                        revisedCommand[1][m]=command[k];
+                        m++;
+                        k++;
+                    }
+                    revisedCommand[1][m]='\0';
+                    while(command[k]=='\t'||command[k]==' '){
+                        k++;
+                    }
                 }
             } 
         }
@@ -523,6 +521,7 @@ int executeCommand(char *command, char **args, char *directory, int procedure, c
     if(strcmp(command, "ls")!=0){
         char *path = (char *)malloc(sizeof(char)*1000);
         strcpy(path, directory);
+        strcat(path, "/");
         strcat(path, command);
         int fdin, fdout;
         if(redirect==3){
@@ -657,6 +656,7 @@ int executeCommand(char *command, char **args, char *directory, int procedure, c
     else{
         char *path = (char *)malloc(sizeof(char)*1000);
         strcpy(path, directory);
+        strcat(path, "/");
         strcat(path, command);
         int fdin, fdout;
         if(redirect==3){
@@ -1065,7 +1065,7 @@ int directoryChanger(char *actDirectory, char* path, char * correctedPath){
                 correctedPath[j]=path[i];
                 j++;
             }
-            strcat(correctedPath, "\0");
+            correctedPath[j]='\0';
         }
     }
     else{

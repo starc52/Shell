@@ -10,6 +10,9 @@
 #include<fcntl.h>
 int directoryChanger(char * actDirectory, char *path, char *correctedPath);
 int main(int argc, char **argv){
+    // for(int i=0;i<argc;i++){
+    //     printf("in pinfo %d %s\n",i, argv[i]);
+    // }
     pid_t processID;
     char directory[1000];
     strcpy(directory, argv[argc-1]);
@@ -80,11 +83,11 @@ int directoryChanger(char *actDirectory, char* path, char * correctedPath){
         else{
             strcpy(correctedPath, "~");
             int j=1;
-            for(int i=length-1;i<pathLength;i++){
+            for(int i=length;i<pathLength;i++){
                 correctedPath[j]=path[i];
                 j++;
             }
-            strcat(correctedPath, "\0");
+            correctedPath[j]='\0';
         }
     }
 }

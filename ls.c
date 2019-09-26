@@ -57,6 +57,8 @@ int main(int argc, char **argv){
                 
                 char revisedDirectory[1000];
                 reverseDirectoryChanger(homeDirectory, currentDirectory, revisedDirectory);
+                printf("%s is the revisedDirectory\n", revisedDirectory);
+
                 DIR *directory = opendir(revisedDirectory); 
                 if (directory == NULL){ 
                     printf("Could not open current directory" ); 
@@ -182,6 +184,7 @@ int main(int argc, char **argv){
                 char filePath[1000];
                 char revisedDirectory[1000];
                 reverseDirectoryChanger(homeDirectory, currentDirectory, revisedDirectory);
+                printf("%s is the revisedDirectory\n", revisedDirectory);
                 DIR *directory = opendir(revisedDirectory); 
                 if (directory == NULL){ 
                     printf("Could not open current directory" ); 
@@ -302,9 +305,10 @@ int main(int argc, char **argv){
             }
         }
         else{
-            char homeDirectory[1000];
             char revisedDirectory[1000];
             reverseDirectoryChanger(homeDirectory, argv[1], revisedDirectory);
+                printf("%s is the revisedDirectory\n", revisedDirectory);
+
             DIR *directory = opendir(revisedDirectory); 
             if (directory == NULL){ 
                 printf("Could not open current directory" ); 
@@ -323,6 +327,8 @@ int main(int argc, char **argv){
         if(strcmp(argv[2], "-l")==0){
             char revDirectory[1000];
             reverseDirectoryChanger(homeDirectory, argv[1], revDirectory);
+                printf("%s is the revDirectory\n", revDirectory);
+
             DIR *directory = opendir(revDirectory); 
             if (directory == NULL){ 
                 printf("Could not open current directory\n" ); 
@@ -449,6 +455,8 @@ int main(int argc, char **argv){
         else if (strcmp(argv[2], "-a")==0){
             char revisedDirectory[1000];
             reverseDirectoryChanger(homeDirectory, argv[1], revisedDirectory);
+                printf("%s is the revisedDirectory\n", revisedDirectory);
+
             DIR *directory = opendir(revisedDirectory); 
             if (directory == NULL){ 
                 printf("Could not open current directory" ); 
@@ -463,6 +471,8 @@ int main(int argc, char **argv){
         else{
             char revDirectory[1000];
             reverseDirectoryChanger(homeDirectory, argv[1], revDirectory);
+                printf("%s is the revisedDirectory\n", revDirectory);
+
             DIR *directory = opendir(revDirectory); 
             if (directory == NULL){ 
                 printf("Could not open current directory\n" ); 

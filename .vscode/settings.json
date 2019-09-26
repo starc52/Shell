@@ -1,5 +1,9 @@
 {
     "files.associations": {
-        "history.h": "c"
+        "history.h": "c",
+        "string.h": "c",
+        "wait.h": "c",
+        "sysmacros.h": "c",
+        "stdlib.h": "c"
     }
 }
