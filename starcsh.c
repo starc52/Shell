@@ -8,6 +8,7 @@
 #include<readline/history.h>
 #include<fcntl.h>
 #include<errno.h>
+#include<signal.h>
 int setenvSimulator(char *varName, char *varValue);
 int unsetenvSimulator(char *varName);
 int checkRedirect(char *fullCommand, char *inputFile, char *outputFile, char *action, int *append);//checks for redirection symbols, and gives input, output, and action accordingly. note that input, output are null pointers if there doesnt exist one. action is not trimmed.
@@ -18,6 +19,7 @@ int executeCommand(char *command, char **args, char *directory, int procedure, c
 int executeSystemCommand(char * command, char **args, int procedure, int numOfArguments, char *inputFile, char *outputFile, int append, int redirect);//executes various other commands.
 int reverseDirectoryChanger(char * homeDirectory, char *givenDirectory, char *revisedDirectory);//converts the directory from new ~ format to the original format.
 int main(){
+    signal(SIGINT, SIG_IGN);
     char *user = (char *)malloc(sizeof(char)*100);
     char *computer = (char *)malloc(sizeof(char)*200);
     char *directory = (char *)malloc(sizeof(char)*1000);
@@ -68,7 +70,7 @@ int main(){
             // for(int h=0;h<numOfArguments;h++){
             //     printf("%d %s\n", h, revisedCommand[h]);
             // }
-            if(strcmp(revisedCommand[0], "exit")==0){
+            if(strcmp(revisedCommand[0], "quit")==0){
                 exit(0);
             }
             if(revisedCommand[numOfArguments-1][0]!='&'){
@@ -647,6 +649,7 @@ int executeCommand(char *command, char **args, char *directory, int procedure, c
         if(redirect==3){
             printf("here1 %s %s\n", inputFile, outputFile);            
             if(childPID == 0){
+                signal(SIGINT, SIG_DFL);
                 dup2(fdin, 0);
                 dup2(fdout, 1);
                 if(args[1][0]=='\0'){
@@ -665,12 +668,14 @@ int executeCommand(char *command, char **args, char *directory, int procedure, c
                 }
             }
             else{
+                signal(SIGINT, SIG_IGN);;;
                 wait(NULL);
             }
         }
         else if(redirect==2){
             printf("here2 %s\n", inputFile);            
             if(childPID == 0){
+                signal(SIGINT, SIG_DFL);
                 dup2(fdin, 0);
                 if(args[1][0]=='\0'){
                     char *arg[]={command, directory, NULL};
@@ -688,12 +693,14 @@ int executeCommand(char *command, char **args, char *directory, int procedure, c
                 }
             }
             else{
+                signal(SIGINT, SIG_IGN);;;
                 wait(NULL);
             }
         }
         else if(redirect==1){
             printf("here3 %s\n", outputFile);                        
             if(childPID == 0){
+                signal(SIGINT, SIG_DFL);
                 dup2(fdout, 1);
                 if(args[1][0]=='\0'){
                     char *arg[]={command, directory, NULL};
@@ -711,11 +718,13 @@ int executeCommand(char *command, char **args, char *directory, int procedure, c
                 }
             }
             else{
+                signal(SIGINT, SIG_IGN);;;
                 wait(NULL);
             }
         }
         else if(redirect==0){
             if(childPID == 0){
+                signal(SIGINT, SIG_DFL);
                 if(args[1][0]=='\0'){
                     char *arg[]={command, directory, NULL};
                     if(execv(path, arg)<0){
@@ -732,6 +741,7 @@ int executeCommand(char *command, char **args, char *directory, int procedure, c
                 }
             }
             else{
+                signal(SIGINT, SIG_IGN);;;
                 wait(NULL);
             }
         }
@@ -781,6 +791,7 @@ int executeCommand(char *command, char **args, char *directory, int procedure, c
         pid_t childPID = fork();
         if(redirect==3){
             if(childPID == 0){
+                signal(SIGINT, SIG_DFL);
                 dup2(fdin, 0);
                 dup2(fdout, 1);
                 if(args[1][0]=='\0' &&args[2][0]=='\0'){
@@ -813,12 +824,14 @@ int executeCommand(char *command, char **args, char *directory, int procedure, c
                 }
             }
             else{
+                signal(SIGINT, SIG_IGN);;;
                 wait(NULL);
             }
         }
         else if(redirect==2){
             printf("here5 %s \n", inputFile);
             if(childPID == 0){
+                signal(SIGINT, SIG_DFL);
                 dup2(fdin, 0);
                 if(args[1][0]=='\0' &&args[2][0]=='\0'){
                     char *arg[]={command, directory, NULL};
@@ -850,12 +863,14 @@ int executeCommand(char *command, char **args, char *directory, int procedure, c
                 }
             }
             else{
+                signal(SIGINT, SIG_IGN);;;
                 wait(NULL);
             }
         }
         else if(redirect==1){
             printf("here 6%s\n", outputFile);                        
             if(childPID == 0){
+                signal(SIGINT, SIG_DFL);
                 dup2(fdout, 1);
                 if(args[1][0]=='\0' &&args[2][0]=='\0'){
                     char *arg[]={command, directory, NULL};
@@ -887,11 +902,13 @@ int executeCommand(char *command, char **args, char *directory, int procedure, c
                 }
             }
             else{
+                signal(SIGINT, SIG_IGN);;;
                 wait(NULL);
             }
         }
         else if(redirect==0){
             if(childPID == 0){
+                signal(SIGINT, SIG_DFL);
                 if(args[1][0]=='\0' &&args[2][0]=='\0'){
                     char *arg[]={command, directory, NULL};
                     if(execv(path, arg)<0){
@@ -922,6 +939,7 @@ int executeCommand(char *command, char **args, char *directory, int procedure, c
                 }
             }
             else{
+                signal(SIGINT, SIG_IGN);;;
                 wait(NULL);
             }
         }
@@ -969,6 +987,7 @@ int executeSystemCommand(char * command, char **args, int procedure, int numOfAr
         }
         pid_t childPID = fork();
         if(redirect==3){
+            signal(SIGINT, SIG_DFL);
             printf("here 7%s %s\n", inputFile, outputFile);
             if(childPID == 0){
                 dup2(fdin, 0);
@@ -994,12 +1013,14 @@ int executeSystemCommand(char * command, char **args, int procedure, int numOfAr
                 }
             }
             else{
+                signal(SIGINT, SIG_IGN);;;
                 wait(NULL);
             }
         }
         else if(redirect==2){
             printf("here8 %s\n", inputFile);            
             if(childPID == 0){
+                signal(SIGINT, SIG_DFL);
                 dup2(fdin, 0);
                 if(numOfArguments>=2){
                     char** arg=(char **)malloc(sizeof(char*)*(numOfArguments+1));
@@ -1022,12 +1043,14 @@ int executeSystemCommand(char * command, char **args, int procedure, int numOfAr
                 }
             }
             else{
+                signal(SIGINT, SIG_IGN);;;
                 wait(NULL);
             }
         }   
         else if(redirect==1){
             printf("here9 %s\n", outputFile);            
             if(childPID == 0){
+                signal(SIGINT, SIG_DFL);
                 dup2(fdout, 1);
                 if(numOfArguments>=2){
                     char** arg=(char **)malloc(sizeof(char*)*(numOfArguments+1));
@@ -1050,11 +1073,13 @@ int executeSystemCommand(char * command, char **args, int procedure, int numOfAr
                 }
             }
             else{
+                signal(SIGINT, SIG_IGN);;;
                 wait(NULL);
             }
         }
         else if(redirect==0){
             if(childPID == 0){
+                signal(SIGINT, SIG_DFL);
                 if(numOfArguments>=2){
                     char** arg=(char **)malloc(sizeof(char*)*(numOfArguments+1));
                     for(int i=0;i<numOfArguments;i++){
@@ -1076,6 +1101,7 @@ int executeSystemCommand(char * command, char **args, int procedure, int numOfAr
                 }
             }
             else{
+                signal(SIGINT, SIG_IGN);;;
                 wait(NULL);
             }
         }
