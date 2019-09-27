@@ -8,10 +8,12 @@
 #include<readline/history.h>
 #include<fcntl.h>
 #include<errno.h>
+int setenvSimulator(char *varName, char *varValue);
+int unsetenvSimulator(char *varName);
 int checkRedirect(char *fullCommand, char *inputFile, char *outputFile, char *action, int *append);//checks for redirection symbols, and gives input, output, and action accordingly. note that input, output are null pointers if there doesnt exist one. action is not trimmed.
 int cd(char * path, char * homeDirectory, char *newDirectory);//given a path(path) entered by user, the actual home directory(homeDirectory), and a buffer(newDirectory) for storing the changed directory in the terms of the revised directory structure.
 int directoryChanger(char *actDirectory, char* path, char * correctedPath);//given an actual directory path, it converts the path into one with the revised ~.
-int commandParse(char *command, char **revisedCommand, int *numOfArguments);//it parses the command into (command and arguments) and adds it to the a buffer(revisedCommand)
+int commandParse(char *command, char **revisedCommand, int *numOfArguments, int *errorInFormat);//it parses the command into (command and arguments) and adds it to the a buffer(revisedCommand)
 int executeCommand(char *command, char **args, char *directory, int procedure, char *inputFile, char *outputFile, int append, int redirect);//executes commands designed by me
 int executeSystemCommand(char * command, char **args, int procedure, int numOfArguments, char *inputFile, char *outputFile, int append, int redirect);//executes various other commands.
 int reverseDirectoryChanger(char * homeDirectory, char *givenDirectory, char *revisedDirectory);//converts the directory from new ~ format to the original format.
@@ -54,9 +56,15 @@ int main(){
             char *inputFile=(char *)malloc(sizeof(char)*1000);
             char *outputFile=(char *)malloc(sizeof(char)*1000);
             char *action=(char*)malloc(sizeof(char)*2000);
-            int append = 0;
+            int append = 0, errorInFormat=0;
             int redirect = checkRedirect(token, inputFile, outputFile, action, &append);
-            commandParse(action, revisedCommand, &numOfArguments);
+            commandParse(action, revisedCommand, &numOfArguments, &errorInFormat);
+            if(errorInFormat==1){
+                free(action);
+                free(inputFile);
+                free(outputFile);
+                break;
+            }
             // for(int h=0;h<numOfArguments;h++){
             //     printf("%d %s\n", h, revisedCommand[h]);
             // }
@@ -64,15 +72,21 @@ int main(){
                 exit(0);
             }
             if(revisedCommand[numOfArguments-1][0]!='&'){
-                if(strcmp(revisedCommand[0], "cd")==0 || strcmp(revisedCommand[0], "ls")==0 || strcmp(revisedCommand[0], "echo")==0 ||strcmp(revisedCommand[0], "pwd")==0 || strcmp(revisedCommand[0], "pinfo")==0){
-                    if(strcmp(revisedCommand[0], "cd")!=0){
+                if(strcmp(revisedCommand[0], "cd")==0 || strcmp(revisedCommand[0], "ls")==0 || strcmp(revisedCommand[0], "echo")==0 ||strcmp(revisedCommand[0], "pwd")==0 || strcmp(revisedCommand[0], "pinfo")==0||strcmp(revisedCommand[0], "setenv")==0||strcmp(revisedCommand[0], "unsetenv")==0){
+                    if(strcmp(revisedCommand[0], "cd")!=0&&strcmp(revisedCommand[0], "setenv")!=0&&strcmp(revisedCommand[0], "unsetenv")!=0){
                         // for(int ing =0;ing<numOfArguments;ing++){
                         //     printf("here %d %s\n",ing, revisedCommand[ing]);
                         // }
                         executeCommand(revisedCommand[0], revisedCommand, homeDirectory,  0, inputFile, outputFile, append, redirect);
                     }
-                    else{
+                    else if(strcmp(revisedCommand[0], "cd")==0){
                         cd(revisedCommand[1], homeDirectory, currentDirectory);
+                    }
+                    else if(strcmp(revisedCommand[0], "setenv")==0){
+                        setenvSimulator(revisedCommand[1], revisedCommand[2]);
+                    }
+                    else if(strcmp(revisedCommand[0], "unsetenv")==0){
+                        unsetenvSimulator(revisedCommand[1]);
                     }
                 }
                 else{
@@ -90,6 +104,14 @@ int main(){
         getcwd(currentDirectory, 1000); 
         strcat(currentDirectory, "/");          
     }
+    return 0;
+}
+int setenvSimulator(char * varName, char * varValue){
+    setenv(varName, varValue, 1);
+    return 0;
+}
+int unsetenvSimulator(char * varName){
+    unsetenv(varName);
     return 0;
 }
 int checkRedirect(char *fullCommand, char *inputFile, char *outputFile, char *action, int *append){
@@ -319,10 +341,11 @@ int checkRedirect(char *fullCommand, char *inputFile, char *outputFile, char *ac
         }
     }
 }
-int commandParse(char *command, char **revisedCommand, int *numOfArguments){
+int commandParse(char *command, char **revisedCommand, int *numOfArguments, int * errorInFormat){
     int k=0;
     int echoAlert=0;
     int lsAlert=0;
+    int setenvAlert=0, unsetenvAlert=0;
     int directoryArg=0;
     while(command[k]=='\t'||command[k]==' '){
         k++;
@@ -340,6 +363,12 @@ int commandParse(char *command, char **revisedCommand, int *numOfArguments){
     }
     if(strcmp(revisedCommand[0], "ls")==0){
         lsAlert=1;
+    }
+    if(strcmp(revisedCommand[0], "setenv")==0){
+        setenvAlert=1;
+    }
+    if(strcmp(revisedCommand[0], "unsetenv")==0){
+        unsetenvAlert=1;
     }
     while(command[k]=='\t'||command[k]==' '){
         k++;
@@ -494,6 +523,60 @@ int commandParse(char *command, char **revisedCommand, int *numOfArguments){
                 strcpy(revisedCommand[2], "-la");
                 *numOfArguments+=2;
             }
+        }
+    }
+    else if(setenvAlert==1){
+        if(k>=strlen(command)){
+            printf("here\n");
+            printf("Error: Usage is setenv var[value]\n");
+            *errorInFormat=1;
+            return 0;
+        }
+        int m=0;
+        while(command[k]!='['){
+            revisedCommand[1][m]=command[k];
+            m++;
+            k++;
+        }
+        revisedCommand[1][m]='\0';
+        k++;
+        m=0;
+        while(command[k]!=']'){
+            revisedCommand[2][m]=command[k];
+            m++;
+            k++;
+        }
+        revisedCommand[2][m]='\0';
+        k++;
+        while(command[k]==' '||command[k]=='\t'){
+            k++;
+        }
+        if((command[k]!=' '&&command[k]!='\t'&&command[k]!='\0')&&k<strlen(command)){
+            printf("Error: Usage is setenv var[value]\n");
+            *errorInFormat=1;
+            return 0;
+        }
+    }
+    else if(unsetenvAlert==1){
+        if(k>=strlen(command)){
+            printf("Error: Usage is unsetenv var\n");
+            *errorInFormat=1;
+            return 0;
+        }
+        int m=0;
+        while(command[k]!=' '&&command[k]!='\t'&&command[k]!='\0'){
+            revisedCommand[1][m]=command[k];
+            m++;
+            k++;
+        }
+        revisedCommand[1][m]='\0';
+        while(command[k]==' '||command[k]=='\t'){
+            k++;
+        }
+        if(command[k]!=' '&&command[k]!='\t'&&command[k]!='\0'&&k<strlen(command)){
+            printf("Error: Usage is unsetenv var\n");
+            *errorInFormat=1;
+            return 0;
         }
     }
     else{
